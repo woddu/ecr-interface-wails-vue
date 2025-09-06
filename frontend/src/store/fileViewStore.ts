@@ -1,7 +1,7 @@
 import { defineStore } from "pinia";
 import { ref } from 'vue'
 
-export const fileViewStore = defineStore("fileView", () => {
+export const useFileViewStore = defineStore("fileView", () => {
     const fileName = ref<string>("");
     function setFileName(name: string) {
         fileName.value = name;
