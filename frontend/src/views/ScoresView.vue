@@ -45,24 +45,7 @@ onMounted(async () => {
 <template>
     <div class="h-full w-full flex flex-col items-center justify-center p-10">
         <div class="grid grid-cols-6 my-auto">
-            <div class="flex p-8">
-                <div v-if="!isFetching" class="m-auto">
-                    <h1 class="text-xl font-medium mb-4">Exam - {{ weightedScores[2] * 100 }}%</h1>
-                    <ScoresField v-model="examHighestScore" label="" size="xl"/>
-                    <UButton
-                      class="mt-4"
-                      label="Save"
-                      size="xl"
-                      :variant="examHighestScore === originalExamHighestScore ? 'ghost' : 'solid'"
-                      :disabled="examHighestScore === originalExamHighestScore" />
-                </div>
-                <div v-else class="w-[90px] h-[168px] m-auto">
-                    <USkeleton class="w-full h-[24px] mb-2" />
-                    <USkeleton class="w-[70%] h-[24px] mb-6" />
-                    <USkeleton class="w-full h-[30px] mb-4" />
-                    <USkeleton class="w-[70%] h-[24px]" />
-                </div>
-            </div>
+            
 
             <div class="flex flex-col gap-8 col-span-5">
                 <div class="grid grid-cols-8">
@@ -118,6 +101,25 @@ onMounted(async () => {
                           :variant="!hasChangesPT ? 'ghost' : 'solid'"
                           :disabled="!hasChangesPT" />
                     </div>
+                </div>
+            </div>
+
+            <div class="flex p-8">
+                <div v-if="!isFetching" class="m-auto">
+                    <h1 class="text-xl font-medium mb-4">Exam - {{ weightedScores[2] * 100 }}%</h1>
+                    <ScoresField v-model="examHighestScore" label="" size="xl"/>
+                    <UButton
+                      class="mt-4"
+                      label="Save"
+                      size="xl"
+                      :variant="examHighestScore === originalExamHighestScore ? 'ghost' : 'solid'"
+                      :disabled="examHighestScore === originalExamHighestScore" />
+                </div>
+                <div v-else class="w-[90px] h-[168px] m-auto">
+                    <USkeleton class="w-full h-[24px] mb-2" />
+                    <USkeleton class="w-[70%] h-[24px] mb-6" />
+                    <USkeleton class="w-full h-[30px] mb-4" />
+                    <USkeleton class="w-[70%] h-[24px]" />
                 </div>
             </div>
         </div>
