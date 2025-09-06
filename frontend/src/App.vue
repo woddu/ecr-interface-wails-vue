@@ -3,6 +3,8 @@ import type { NavigationMenuItem } from '@nuxt/ui';
 import { nextTick, onMounted, ref } from 'vue';
 import { EventsOn } from '../wailsjs/runtime/runtime';
 
+const toast = useToast()
+
 const isLoading = ref<boolean>(false);
 
 const navItems = ref<NavigationMenuItem[]>([
@@ -21,10 +23,10 @@ onMounted( async () => {
     mainPaddingTop.value = `${height}px`
   }
   console.log('App mounted');
-  EventsOn('excel:progress', (message: string) => {
-    console.log('Progress:', message);
+  EventsOn('excel:error', (message: string) => {
+    toast.add({ title: 'Error', description: message, color: 'error' });
   })
-  EventsOn('excel:done', () => {
+  EventsOn('excel:choose_cancelled', () => {
     isLoading.value = false;
   })
   EventsOn('excel:done_reading', () => {
