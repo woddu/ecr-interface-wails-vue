@@ -75,11 +75,43 @@ func (a *App) ChangeTrack(newTrack string, index int) {
 		return
 	} else if slices.Contains(tracks[:], newTrack) {
 		a.track = newTrack
-		a.weightedScores = weightedScores[indexOf(tracks[:], a.track)]
 	} else if index >= 0 && index < len(tracks) {
 		a.track = tracks[index]
-		a.weightedScores = weightedScores[indexOf(tracks[:], a.track)]
 	}
+
+	go func(track string) {
+		f, err := excelize.OpenFile(a.filePath)
+		if err != nil {
+			runtime.EventsEmit(a.ctx, "excel:error", fmt.Sprintf("Failed to open: %v", err))
+			return
+		}
+		defer f.Close()
+		rows, err := f.GetRows(sheetsList[0]) // "INPUT DATA"
+		if err != nil {
+			runtime.EventsEmit(a.ctx, "excel:error", fmt.Sprintf("Failed to get rows: %v", err))
+			return
+		}
+		if len(rows) < 7 {
+			runtime.EventsEmit(a.ctx, "excel:error", "Not enough rows in INPUT DATA sheet")
+			return
+		}
+
+		row := rows[7] // 8 row (index 7)
+
+		// write to row[colNameToNumber("AE")]
+		row[colNameToNumber("AE")] = a.track
+
+		if len(row) >= 3 {
+			track := row[colNameToNumber("AE")]
+			a.track = track
+			a.weightedScores = weightedScores[indexOf(tracks[:], a.track)]
+		}
+		if err := f.Save(); err != nil {
+			runtime.EventsEmit(a.ctx, "excel:error", fmt.Sprintf("Failed to save: %v", err))
+			return
+		}
+		runtime.EventsEmit(a.ctx, "excel:track_changed", a.weightedScores)
+	}(a.track)
 }
 
 func (a *App) OpenFileDialog() error {
@@ -97,7 +129,7 @@ func (a *App) OpenFileDialog() error {
 	}
 
 	if filePath == "" {
-		runtime.EventsEmit(a.ctx, "excel:done")
+		runtime.EventsEmit(a.ctx, "excel:choose_cancelled")
 		return nil
 	}
 
@@ -174,6 +206,7 @@ func (a *App) OpenFileDialog() error {
 				a.examHighestScore = score
 			}
 		}
+
 		sheet := sheetsList[0] // e.g. "INPUT DATA"
 		var male []string
 		var female []string
@@ -203,11 +236,6 @@ func (a *App) OpenFileDialog() error {
 		runtime.EventsEmit(a.ctx, "excel:done_reading")
 	}(filePath)
 
-	fmt.Println(a.weightedScores)
-	fmt.Println(a.wwHighestScores)
-	fmt.Println(a.ptHighestScores)
-	fmt.Println(a.examHighestScore)
-
 	return nil
 }
 
@@ -219,10 +247,6 @@ type ScoresResult struct {
 }
 
 func (a *App) Scores() ScoresResult {
-	fmt.Println(a.weightedScores)
-	fmt.Println(a.wwHighestScores)
-	fmt.Println(a.ptHighestScores)
-	fmt.Println(a.examHighestScore)
 	return ScoresResult{
 		WwHighestScores:  a.wwHighestScores,
 		PtHighestScores:  a.ptHighestScores,
@@ -231,19 +255,95 @@ func (a *App) Scores() ScoresResult {
 	}
 }
 
-func (a *App) EditHighestScores(scores [10]float32, writtenWorks bool) [10]float32 {
+func (a *App) EditHighestScores(scores [10]float32, writtenWorks bool) {
 	if writtenWorks {
 		a.wwHighestScores = scores
-		return a.wwHighestScores
 	} else {
 		a.ptHighestScores = scores
-		return a.ptHighestScores
 	}
+
+	go func(writtenWorks bool) {
+		f, err := excelize.OpenFile(a.filePath)
+		if err != nil {
+			runtime.EventsEmit(a.ctx, "excel:error", fmt.Sprintf("Failed to open: %v", err))
+			return
+		}
+		defer f.Close()
+		var index int
+		if a.firstSem {
+			index = 1
+		} else {
+			index = 2
+		}
+		rows, err := f.GetRows(sheetsList[index])
+		if err != nil {
+			runtime.EventsEmit(a.ctx, "excel:error", fmt.Sprintf("Failed to get rows: %v", err))
+			return
+		}
+		rowIndex := 10
+		if rowIndex < len(rows) {
+			row := rows[rowIndex]
+			if len(row) > colNameToNumber("AF") {
+				if writtenWorks {
+					for i := range 10 {
+						row[colNameToNumber("F")+i] = fmt.Sprintf("%.0f", a.wwHighestScores[i])
+					}
+				} else {
+					for i := range 10 {
+						row[colNameToNumber("S")+i] = fmt.Sprintf("%.0f", a.ptHighestScores[i])
+					}
+				}
+				if err := f.Save(); err != nil {
+					runtime.EventsEmit(a.ctx, "excel:error", fmt.Sprintf("Failed to save: %v", err))
+					return
+				}
+				if writtenWorks {
+					runtime.EventsEmit(a.ctx, "excel:done_editing_highest_scores", writtenWorks, a.wwHighestScores)
+				} else {
+					runtime.EventsEmit(a.ctx, "excel:done_editing_highest_scores", writtenWorks, a.ptHighestScores)
+				}
+			}
+		}
+	}(writtenWorks)
+
 }
 
-func (a *App) EditExamHighestScore(score float32) float32 {
+func (a *App) EditExamHighestScore(score float32) {
 	a.examHighestScore = score
-	return a.examHighestScore
+	go func() {
+		f, err := excelize.OpenFile(a.filePath)
+		if err != nil {
+			runtime.EventsEmit(a.ctx, "excel:error", fmt.Sprintf("Failed to open: %v", err))
+			return
+		}
+		defer f.Close()
+
+		var index int
+		if a.firstSem {
+			index = 1
+		} else {
+			index = 2
+		}
+
+		rows, err := f.GetRows(sheetsList[index])
+		if err != nil {
+			return
+		}
+		if len(rows) < 7 {
+			return
+		}
+		row := rows[7]
+
+		if len(row) > 3 {
+			row[colNameToNumber("AF")] = fmt.Sprintf("%.0f", a.examHighestScore)
+
+			if err := f.Save(); err != nil {
+				runtime.EventsEmit(a.ctx, "excel:error", fmt.Sprintf("Failed to save: %v", err))
+				return
+			}
+		}
+		runtime.EventsEmit(a.ctx, "excel:done_editing_exam_highest_score", a.examHighestScore)
+	}()
 }
 
 type StudentScores struct {
