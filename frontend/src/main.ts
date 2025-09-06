@@ -23,7 +23,19 @@ const router = createRouter({
     {
       path: "/students",
       component: () => import("./views/StudentsView.vue"),
-      name: "Students"
+      name: "Students",
+      children: [
+        {
+          path: "",
+          component: () => import("./views/students/Students.vue"),
+          name: "StudentsList"
+        },
+        {
+          path: "scores",
+          component: () => import("./views/students/StudentScores.vue"),
+          name: "StudentScores"
+        }
+      ]
     }
   ],
   history: createWebHashHistory(),

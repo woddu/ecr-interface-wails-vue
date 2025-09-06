@@ -1,11 +1,12 @@
 <script setup lang="ts">
 
+
 const emit = defineEmits<{
   (e: 'loading', value: boolean): void
 }>()
-
 </script>
 
 <template>
-    <RouterView @loading="emit('loading', $event)" />
+
+    
 </template>
