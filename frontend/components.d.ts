@@ -14,6 +14,7 @@ declare module 'vue' {
     UApp: typeof import('./node_modules/@nuxt/ui/dist/runtime/components/App.vue')['default']
     UButton: typeof import('./node_modules/@nuxt/ui/dist/runtime/components/Button.vue')['default']
     UFormField: typeof import('./node_modules/@nuxt/ui/dist/runtime/components/FormField.vue')['default']
+    UInput: typeof import('./node_modules/@nuxt/ui/dist/runtime/components/Input.vue')['default']
     UInputNumber: typeof import('./node_modules/@nuxt/ui/dist/runtime/components/InputNumber.vue')['default']
     UNavigationMenu: typeof import('./node_modules/@nuxt/ui/dist/runtime/components/NavigationMenu.vue')['default']
     UProgress: typeof import('./node_modules/@nuxt/ui/dist/runtime/components/Progress.vue')['default']
