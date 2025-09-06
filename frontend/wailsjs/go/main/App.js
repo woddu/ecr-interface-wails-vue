@@ -18,6 +18,10 @@ export function FileName() {
   return window['go']['main']['App']['FileName']();
 }
 
+export function GetStudent(arg1) {
+  return window['go']['main']['App']['GetStudent'](arg1);
+}
+
 export function OpenFileDialog() {
   return window['go']['main']['App']['OpenFileDialog']();
 }

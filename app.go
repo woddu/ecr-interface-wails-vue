@@ -246,8 +246,16 @@ func (a *App) EditExamHighestScore(score float32) float32 {
 	return a.examHighestScore
 }
 
+type StudentScores struct {
+	Name         string      `json:"name"`
+	WrittenWorks [10]float32 `json:"writtenWorks"`
+	Performance  [10]float32 `json:"performance"`
+	Exam         float32     `json:"exam"`
+}
+
 func (a *App) GetStudent(row int) {
 	go func(row int) {
+		var studentScores StudentScores
 		f, err := excelize.OpenFile(a.filePath)
 		if err != nil {
 			runtime.EventsEmit(a.ctx, "excel:error", fmt.Sprintf("Failed to open: %v", err))
@@ -256,12 +264,26 @@ func (a *App) GetStudent(row int) {
 		defer f.Close()
 
 		var index int
+
 		if a.firstSem {
 			index = 1
 		} else {
 			index = 2
 		}
-		rows, err := f.GetRows(sheetsList[index])
+
+		rows, err := f.GetRows(sheetsList[0]) // "INPUT DATA"
+		if err != nil {
+			return
+		}
+
+		if len(rows) < row {
+			return
+		}
+
+		studentScores.Name = rows[row+12][colNameToNumber("B")] // row is 1-based index
+
+		rows, err = f.GetRows(sheetsList[index])
+
 		if err != nil {
 			return
 		}
@@ -278,6 +300,7 @@ func (a *App) GetStudent(row int) {
 				if v == "" {
 					score = 0
 				}
+				studentScores.WrittenWorks[i] = score
 				// a.wwHighestScores[i] = score
 			}
 			values = studentRow[colNameToNumber("S") : colNameToNumber("AB")+1]
@@ -286,10 +309,13 @@ func (a *App) GetStudent(row int) {
 				if v == "" {
 					score = 0
 				}
+				studentScores.Performance[i] = score
 				// a.ptHighestScores[i] = score
 			}
 			fmt.Sscanf(studentRow[colNameToNumber("AF")], "%f", &score)
-			// a.examHighestScore = score
+			studentScores.Exam = score
+			runtime.EventsEmit(a.ctx, "excel:student_scores", studentScores)
+			runtime.EventsEmit(a.ctx, "excel:done_getting_student")
 		}
 	}(row)
 }

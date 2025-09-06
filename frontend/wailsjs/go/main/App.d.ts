@@ -10,6 +10,8 @@ export function EditHighestScores(arg1:any,arg2:boolean):Promise<any>;
 
 export function FileName():Promise<string>;
 
+export function GetStudent(arg1:number):Promise<void>;
+
 export function OpenFileDialog():Promise<void>;
 
 export function Scores():Promise<main.ScoresResult>;
