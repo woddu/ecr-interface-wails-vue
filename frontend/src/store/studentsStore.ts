@@ -1,7 +1,7 @@
 import { defineStore } from "pinia";
 import { ref } from "vue"
 
-export const studentsStore = defineStore("students", () => {
+export const useStudentsStore = defineStore("students", () => {
     const males = ref<string[]>([]);
     function setMales(newMales: string[]) {
         males.value = newMales;
