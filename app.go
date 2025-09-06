@@ -246,6 +246,54 @@ func (a *App) EditExamHighestScore(score float32) float32 {
 	return a.examHighestScore
 }
 
+func (a *App) GetStudent(row int) {
+	go func(row int) {
+		f, err := excelize.OpenFile(a.filePath)
+		if err != nil {
+			runtime.EventsEmit(a.ctx, "excel:error", fmt.Sprintf("Failed to open: %v", err))
+			return
+		}
+		defer f.Close()
+
+		var index int
+		if a.firstSem {
+			index = 1
+		} else {
+			index = 2
+		}
+		rows, err := f.GetRows(sheetsList[index])
+		if err != nil {
+			return
+		}
+		if len(rows) < row {
+			return
+		}
+		studentRow := rows[row+12] // row is 1-based index
+		if len(studentRow) > colNameToNumber("AF") {
+			var score float32
+
+			values := studentRow[colNameToNumber("F") : colNameToNumber("O")+1] // slice is end-exclusive
+			for i, v := range values {
+				fmt.Sscanf(v, "%f", &score)
+				if v == "" {
+					score = 0
+				}
+				// a.wwHighestScores[i] = score
+			}
+			values = studentRow[colNameToNumber("S") : colNameToNumber("AB")+1]
+			for i, v := range values {
+				fmt.Sscanf(v, "%f", &score)
+				if v == "" {
+					score = 0
+				}
+				// a.ptHighestScores[i] = score
+			}
+			fmt.Sscanf(studentRow[colNameToNumber("AF")], "%f", &score)
+			// a.examHighestScore = score
+		}
+	}(row)
+}
+
 func colNameToNumber(col string) int {
 	col = strings.ToUpper(col)
 	result := 0
