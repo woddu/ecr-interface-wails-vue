@@ -82,7 +82,7 @@ func (a *App) ChangeTrack(newTrack string, index int) {
 	go func(track string) {
 		f, err := excelize.OpenFile(a.filePath)
 		if err != nil {
-			runtime.EventsEmit(a.ctx, "excel:error", fmt.Sprintf("Failed to open: %v", err))
+			runtime.EventsEmit(a.ctx, "excel:error", fmt.Sprintf("(CT)Failed to open: %v", err))
 			return
 		}
 		defer f.Close()
@@ -137,7 +137,7 @@ func (a *App) OpenFileDialog() error {
 	go func(path string) {
 		f, err := excelize.OpenFile(path)
 		if err != nil {
-			runtime.EventsEmit(a.ctx, "excel:error", fmt.Sprintf("Failed to open: %v", err))
+			runtime.EventsEmit(a.ctx, "excel:error", fmt.Sprintf("(OFD)Failed to open: %v", err))
 			return
 		}
 		defer f.Close()
@@ -266,7 +266,7 @@ func (a *App) EditHighestScores(scores [10]float32, writtenWorks bool) {
 	go func(writtenWorks bool) {
 		f, err := excelize.OpenFile(a.filePath)
 		if err != nil {
-			runtime.EventsEmit(a.ctx, "excel:error", fmt.Sprintf("Failed to open: %v", err))
+			runtime.EventsEmit(a.ctx, "excel:error", fmt.Sprintf("(EHC)Failed to open: %v", err))
 			return
 		}
 		defer f.Close()
@@ -314,7 +314,7 @@ func (a *App) EditExamHighestScore(score float32) {
 	go func() {
 		f, err := excelize.OpenFile(a.filePath)
 		if err != nil {
-			runtime.EventsEmit(a.ctx, "excel:error", fmt.Sprintf("Failed to open: %v", err))
+			runtime.EventsEmit(a.ctx, "excel:error", fmt.Sprintf("(EEHS)Failed to open: %v", err))
 			return
 		}
 		defer f.Close()
@@ -361,7 +361,7 @@ func (a *App) GetStudent(row int) {
 		studentInfo.Row = row + 12
 		f, err := excelize.OpenFile(a.filePath)
 		if err != nil {
-			runtime.EventsEmit(a.ctx, "excel:error", fmt.Sprintf("Failed to open: %v", err))
+			runtime.EventsEmit(a.ctx, "excel:error", fmt.Sprintf("(GS)Failed to open: %v", err))
 			return
 		}
 		defer f.Close()
@@ -427,7 +427,7 @@ func (a *App) EditStudentScores(studentRow int, scores [10]float32, writtenWorks
 	go func(studentRow int, scores [10]float32, writtenWorks bool) {
 		f, err := excelize.OpenFile(a.filePath)
 		if err != nil {
-			runtime.EventsEmit(a.ctx, "excel:error", fmt.Sprintf("Failed to open: %v", err))
+			runtime.EventsEmit(a.ctx, "excel:error", fmt.Sprintf("(ESS)Failed to open: %v", err))
 			return
 		}
 		defer f.Close()
@@ -515,7 +515,7 @@ func (a *App) AddStudent(name string, isMale bool) {
 	go func(name string, isMale bool) {
 		f, err := excelize.OpenFile(a.filePath)
 		if err != nil {
-			runtime.EventsEmit(a.ctx, "excel:error", fmt.Sprintf("Failed to open: %v", err))
+			runtime.EventsEmit(a.ctx, "excel:error", fmt.Sprintf("(AS)Failed to open: %v", err))
 			return
 		}
 		defer f.Close()
