@@ -2,8 +2,11 @@
 import type { NavigationMenuItem } from '@nuxt/ui';
 import { nextTick, onMounted, ref } from 'vue';
 import { EventsOn } from '../wailsjs/runtime/runtime';
+import { useStudentsStore } from './store/studentsStore';
 
 const toast = useToast()
+
+const studentsStore = useStudentsStore();
 
 const isLoading = ref<boolean>(false);
 
@@ -34,6 +37,16 @@ onMounted( async () => {
     navItems.value[1].disabled = false;
     navItems.value[2].disabled = false;
   })
+
+  EventsOn('excel:students_male', (male: string[]) => {
+    studentsStore.setMales(male);
+    isLoading.value = false;
+  });
+
+  EventsOn('excel:students_female', (female: string[]) => {
+    studentsStore.setFemales(female);
+    isLoading.value = false;
+  });
 })
 
 </script>
