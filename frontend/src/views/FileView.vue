@@ -18,7 +18,6 @@ const toast = useToast();
 
 const fileStore = useFileViewStore();
 
-
 const highestScoresStore = useHighestScoresStore();
 
 const selectedTrack = ref<string>(fileStore.track);
@@ -31,7 +30,7 @@ const chooseFile = async () => {
 };
 
 async function handleSelect(newTrack: string) {
-  if (fileStore.track != newTrack){
+  if (fileStore.track != newTrack && fileStore.doneReading){
     emit('loading', true);
     const { ChangeTrack } = await import('../../wailsjs/go/main/App');
     await ChangeTrack(newTrack, fileStore.tracks.indexOf(newTrack));
@@ -40,8 +39,6 @@ async function handleSelect(newTrack: string) {
 }
 
 onMounted(async () => {
-  const { AddStudent } = await import('../../wailsjs/go/main/App');
-  await AddStudent("Castro, Ron Neil N.", true)
 
   if(!fileStore.doneReading) {
     const { Tracks } = await import('../../wailsjs/go/main/App');
