@@ -18,7 +18,6 @@ const toast = useToast();
 
 const fileStore = useFileViewStore();
 
-const studentsStore = useStudentsStore();
 
 const highestScoresStore = useHighestScoresStore();
 
@@ -61,13 +60,6 @@ onMounted(async () => {
     }
   });
 
-  EventsOn('excel:students_male', (male: string[]) => {
-    studentsStore.setMales(male);
-  });
-
-  EventsOn('excel:students_female', (female: string[]) => {
-    studentsStore.setFemales(female);
-  });
 
   EventsOn('excel:done_reading', async () => {
     const { FileName } = await import('../../wailsjs/go/main/App');
