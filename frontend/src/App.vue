@@ -28,6 +28,7 @@ onMounted( async () => {
   console.log('App mounted');
   EventsOn('excel:error', (message: string) => {
     toast.add({ title: 'Error', description: message, color: 'error' });
+    isLoading.value = false;
   })
   EventsOn('excel:choose_cancelled', () => {
     isLoading.value = false;
