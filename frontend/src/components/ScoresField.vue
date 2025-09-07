@@ -4,7 +4,8 @@
 const props = defineProps<{
   modelValue: number,
   size?: 'sm' | 'md' | 'lg' | 'xl',
-  label: string
+  label: string,
+  max?: number
 }>()
 
 const emit = defineEmits<{
@@ -23,7 +24,7 @@ const emit = defineEmits<{
       color="primary"
       variant="soft"
       :min="0"
-      :max="99"
+      :max="props.max ? props.max : 99"
       orientation="vertical" />
   </UFormField>
 </template>

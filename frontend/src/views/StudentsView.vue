@@ -7,5 +7,5 @@ const emit = defineEmits<{
 </script>
 
 <template>
-    <RouterView @loading="emit('loading', $event)" />
+    <RouterView @loading="(value: boolean) => emit('loading', value)" />
 </template>
