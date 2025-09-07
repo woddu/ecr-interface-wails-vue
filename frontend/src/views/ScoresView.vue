@@ -78,7 +78,7 @@ onMounted(() => {
             <div class="flex flex-col gap-8 col-span-5">
                 <div class="grid grid-cols-8">
                     <div v-if="!isFetching" class="col-span-7">
-                        <h1 class="text-xl font-medium">Written Works - {{ highestScoresStore.weightedScores[0] * 100 }}%</h1>
+                        <h1 class="text-2xl font-medium">Written Works - {{ highestScoresStore.weightedScores[0] * 100 }}%</h1>
                         <div class="grid grid-cols-5 gap-4">
                             <ScoresField v-for="(, index) in wwHighestScores" :key="index"
                                 v-model="wwHighestScores[index]" :label="`#${index + 1}`" 
@@ -106,7 +106,7 @@ onMounted(() => {
                 </div>
                 <div class="grid grid-cols-8">
                     <div v-if="!isFetching" class="col-span-7">
-                        <h1 class="text-xl font-medium">Performance Tasks - {{ highestScoresStore.weightedScores[1] * 100 }}%</h1>
+                        <h1 class="text-2xl font-medium">Performance Tasks - {{ highestScoresStore.weightedScores[1] * 100 }}%</h1>
                         <div class="grid grid-cols-5 gap-4">
                             <ScoresField v-for="(, index) in ptHighestScores" :key="index"
                                 v-model="ptHighestScores[index]" :label="`#${index + 1}`" 
@@ -136,7 +136,7 @@ onMounted(() => {
 
             <div class="flex p-8">
                 <div v-if="!isFetching" class="m-auto">
-                    <h1 class="text-xl font-medium mb-4">Exam - {{ highestScoresStore.weightedScores[2] * 100 }}%</h1>
+                    <h1 class="text-2xl font-medium mb-4">Exam - {{ highestScoresStore.weightedScores[2] * 100 }}%</h1>
                     <ScoresField v-model="examHighestScore" label="" size="xl"/>
                     <UButton
                       class="mt-4"
