@@ -1,9 +1,10 @@
 <script setup lang="ts">
 import { EventsOn } from '../../wailsjs/runtime/runtime';
 import { onMounted } from 'vue';
-import { fileViewStore } from '../store/fileViewStore';
+import { useFileViewStore } from '../store/fileViewStore';
 import { ref } from 'vue';
-import { studentsStore } from '../store/studentsStore';
+import { useStudentsStore } from '../store/studentsStore';
+import { useHighestScoresStore } from '../store/highestScoresStore';
 
 const props = defineProps<{
   paddingTop: string
@@ -15,9 +16,11 @@ const emit = defineEmits<{
 
 const toast = useToast();
 
-const fileStore = fileViewStore();
+const fileStore = useFileViewStore();
 
-const studentStore = studentsStore();
+const studentsStore = useStudentsStore();
+
+const highestScoresStore = useHighestScoresStore();
 
 const selectedTrack = ref<string>(fileStore.track);
 
@@ -29,17 +32,27 @@ const chooseFile = async () => {
 };
 
 async function handleSelect(newTrack: string) {
-  const { ChangeTrack } = await import('../../wailsjs/go/main/App');
-  await ChangeTrack(newTrack, fileStore.tracks.indexOf(newTrack));
-  fileStore.setTrack(newTrack);
+  if (fileStore.track != newTrack){
+    emit('loading', true);
+    const { ChangeTrack } = await import('../../wailsjs/go/main/App');
+    await ChangeTrack(newTrack, fileStore.tracks.indexOf(newTrack));
+    fileStore.setTrack(newTrack);
+  }
 }
 
 onMounted(async () => {
+  const { AddStudent } = await import('../../wailsjs/go/main/App');
+  await AddStudent("Castro, Ron Neil N.", true)
 
-  const { Tracks } = await import('../../wailsjs/go/main/App');
-  fileStore.setTracks(await Tracks());
-  if (fileStore.tracks.length > 0) {
-    fileStore.setTrack(fileStore.tracks[0]);
+  if(!fileStore.doneReading) {
+    const { Tracks } = await import('../../wailsjs/go/main/App');
+    await Tracks().then((tracks: string[]) => {
+      fileStore.setTracks(tracks);
+      if (fileStore.tracks.length > 0) {
+        fileStore.setTrack(fileStore.tracks[0]);
+        selectedTrack.value = fileStore.tracks[0];
+      }
+    });
   }
 
   EventsOn('excel:is_ecr', (isECR: boolean) => {
@@ -48,26 +61,34 @@ onMounted(async () => {
     }
   });
 
-
   EventsOn('excel:students_male', (male: string[]) => {
-    studentStore.setMales(male);
-    console.log(studentStore.males);
+    studentsStore.setMales(male);
   });
-  console.log(studentStore.males);
 
   EventsOn('excel:students_female', (female: string[]) => {
-    studentStore.setFemales(female);
-    console.log(studentStore.females);
+    studentsStore.setFemales(female);
   });
-  console.log(studentStore.females);
 
   EventsOn('excel:done_reading', async () => {
     const { FileName } = await import('../../wailsjs/go/main/App');
     fileStore.setFileName(await FileName())
-    fileStore.setDoneReading(true);
-    emit('loading', false);
+    const { Scores } = await import('../../wailsjs/go/main/App');
+    await Scores().then(res => {
+        highestScoresStore.setWwHighestScores(res.wwHighestScores);
+        highestScoresStore.setPtHighestScores(res.ptHighestScores);
+        highestScoresStore.setExamHighestScore(res.examHighestScore);
+        highestScoresStore.setWeightedScores(res.weightedScores);
+    }).finally(() => {
+      fileStore.setDoneReading(true);
+      emit('loading', false);
+    });
   })
 
+  EventsOn('excel:track_changed', (weightedScores: number[]) => {
+    highestScoresStore.setWeightedScores(weightedScores);
+    console.log(weightedScores);
+    emit('loading', false);
+  });
 
 });
 </script>
