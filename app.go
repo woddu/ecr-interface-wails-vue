@@ -106,6 +106,7 @@ func (a *App) ChangeTrack(newTrack string, index int) {
 			a.track = track
 			a.weightedScores = weightedScores[indexOf(tracks[:], a.track)]
 		}
+
 		if err := f.Save(); err != nil {
 			runtime.EventsEmit(a.ctx, "excel:error", fmt.Sprintf("Failed to save: %v", err))
 			return
@@ -211,7 +212,7 @@ func (a *App) OpenFileDialog() error {
 		var male []string
 		var female []string
 
-		for row := 13; row <= 37; row++ {
+		for row := 13; row <= 42; row++ {
 			cell, err := f.GetCellValue(sheet, fmt.Sprintf("B%d", row))
 			if err != nil {
 				continue // skip errors silently
@@ -222,7 +223,7 @@ func (a *App) OpenFileDialog() error {
 		}
 		runtime.EventsEmit(a.ctx, "excel:students_male", male)
 
-		for row := 64; row <= 88; row++ {
+		for row := 64; row <= 93; row++ {
 			cell, err := f.GetCellValue(sheet, fmt.Sprintf("B%d", row))
 			if err != nil {
 				continue // skip errors silently
@@ -346,7 +347,8 @@ func (a *App) EditExamHighestScore(score float32) {
 	}()
 }
 
-type StudentScores struct {
+type StudentInfo struct {
+	Row          int         `json:"row"`
 	Name         string      `json:"name"`
 	WrittenWorks [10]float32 `json:"writtenWorks"`
 	Performance  [10]float32 `json:"performance"`
@@ -355,7 +357,8 @@ type StudentScores struct {
 
 func (a *App) GetStudent(row int) {
 	go func(row int) {
-		var studentScores StudentScores
+		var studentInfo StudentInfo
+		studentInfo.Row = row + 12
 		f, err := excelize.OpenFile(a.filePath)
 		if err != nil {
 			runtime.EventsEmit(a.ctx, "excel:error", fmt.Sprintf("Failed to open: %v", err))
@@ -380,7 +383,7 @@ func (a *App) GetStudent(row int) {
 			return
 		}
 
-		studentScores.Name = rows[row+12][colNameToNumber("B")] // row is 1-based index
+		studentInfo.Name = rows[studentInfo.Row][colNameToNumber("B")] // row is 1-based index
 
 		rows, err = f.GetRows(sheetsList[index])
 
@@ -400,7 +403,7 @@ func (a *App) GetStudent(row int) {
 				if v == "" {
 					score = 0
 				}
-				studentScores.WrittenWorks[i] = score
+				studentInfo.WrittenWorks[i] = score
 				// a.wwHighestScores[i] = score
 			}
 			values = studentRow[colNameToNumber("S") : colNameToNumber("AB")+1]
@@ -409,15 +412,168 @@ func (a *App) GetStudent(row int) {
 				if v == "" {
 					score = 0
 				}
-				studentScores.Performance[i] = score
+				studentInfo.Performance[i] = score
 				// a.ptHighestScores[i] = score
 			}
 			fmt.Sscanf(studentRow[colNameToNumber("AF")], "%f", &score)
-			studentScores.Exam = score
-			runtime.EventsEmit(a.ctx, "excel:student_scores", studentScores)
-			runtime.EventsEmit(a.ctx, "excel:done_getting_student")
+			studentInfo.Exam = score
+			runtime.EventsEmit(a.ctx, "excel:done_getting_student", studentInfo)
 		}
 	}(row)
+}
+
+func (a *App) EditStudentScores(studentRow int, scores [10]float32, writtenWorks bool) {
+
+	go func(studentRow int, scores [10]float32, writtenWorks bool) {
+		f, err := excelize.OpenFile(a.filePath)
+		if err != nil {
+			runtime.EventsEmit(a.ctx, "excel:error", fmt.Sprintf("Failed to open: %v", err))
+			return
+		}
+		defer f.Close()
+
+		var index int
+
+		if a.firstSem {
+			index = 1
+		} else {
+			index = 2
+		}
+		rows, err := f.GetRows(sheetsList[index])
+		if err != nil {
+			runtime.EventsEmit(a.ctx, "excel:error", fmt.Sprintf("Failed to get rows: %v", err))
+			return
+		}
+
+		if studentRow < len(rows) {
+			row := rows[studentRow]
+			if len(row) > colNameToNumber("AF") {
+				if writtenWorks {
+					for i := range 10 {
+						row[colNameToNumber("F")+i] = fmt.Sprintf("%.0f", scores[i])
+					}
+				} else {
+					for i := range 10 {
+						row[colNameToNumber("S")+i] = fmt.Sprintf("%.0f", scores[i])
+					}
+				}
+
+				if err := f.Save(); err != nil {
+					runtime.EventsEmit(a.ctx, "excel:error", fmt.Sprintf("Failed to save: %v", err))
+					return
+				}
+
+				if writtenWorks {
+					runtime.EventsEmit(a.ctx, "excel:done_editing_student_scores", writtenWorks, scores)
+				} else {
+					runtime.EventsEmit(a.ctx, "excel:done_editing_student_scores", writtenWorks, scores)
+				}
+			}
+		}
+	}(studentRow, scores, writtenWorks)
+
+}
+
+func (a *App) EditStudentExamScore(studentRow int, score float32) {
+	go func(studentRow int, score float32) {
+		f, err := excelize.OpenFile(a.filePath)
+		if err != nil {
+			runtime.EventsEmit(a.ctx, "excel:error", fmt.Sprintf("Failed to open: %v", err))
+			return
+		}
+		defer f.Close()
+
+		var index int
+		if a.firstSem {
+			index = 1
+		} else {
+			index = 2
+		}
+
+		rows, err := f.GetRows(sheetsList[index])
+		if err != nil {
+			return
+		}
+		if len(rows) < studentRow {
+			return
+		}
+		row := rows[studentRow]
+
+		if len(row) > 3 {
+			row[colNameToNumber("AF")] = fmt.Sprintf("%.0f", score)
+
+			if err := f.Save(); err != nil {
+				runtime.EventsEmit(a.ctx, "excel:error", fmt.Sprintf("Failed to save: %v", err))
+				return
+			}
+		}
+		runtime.EventsEmit(a.ctx, "excel:done_editing_student_exam_score", score)
+	}(studentRow, score)
+}
+
+func (a *App) AddStudent(name string, isMale bool) {
+	go func(name string, isMale bool) {
+		f, err := excelize.OpenFile(a.filePath)
+		if err != nil {
+			runtime.EventsEmit(a.ctx, "excel:error", fmt.Sprintf("Failed to open: %v", err))
+			return
+		}
+		defer f.Close()
+
+		sheet := sheetsList[0] // e.g. "INPUT DATA"
+		var names []string
+		if isMale {
+			for row := 13; row <= 42; row++ {
+				cell, err := f.GetCellValue(sheet, fmt.Sprintf("B%d", row))
+				if err != nil {
+					continue // skip errors silently
+				}
+				if cell != "" {
+					names = append(names, cell)
+				}
+			}
+		} else {
+			for row := 64; row <= 93; row++ {
+				cell, err := f.GetCellValue(sheet, fmt.Sprintf("B%d", row))
+				if err != nil {
+					continue // skip errors silently
+				}
+				if cell != "" {
+					names = append(names, cell)
+				}
+			}
+		}
+
+		names = append(names, strings.ToUpper(name))
+		slices.Sort(names)
+
+		if isMale {
+			for i, v := range names {
+				cell := fmt.Sprintf("B%d", i+13) // B13 onwards
+				if err := f.SetCellValue(sheet, cell, v); err != nil {
+					runtime.EventsEmit(a.ctx, "excel:error", fmt.Sprintf("Failed to write to names: %v", err))
+				}
+			}
+		} else {
+			for i, v := range names {
+				cell := fmt.Sprintf("B%d", i+64) // B64 onwards
+				if err := f.SetCellValue(sheet, cell, v); err != nil {
+					runtime.EventsEmit(a.ctx, "excel:error", fmt.Sprintf("Failed to write to names: %v", err))
+				}
+			}
+		}
+
+		if err := f.Save(); err != nil {
+			runtime.EventsEmit(a.ctx, "excel:error", fmt.Sprintf("Failed to save: %v", err))
+			return
+		}
+		if isMale {
+			runtime.EventsEmit(a.ctx, "excel:students_male", names)
+		} else {
+			runtime.EventsEmit(a.ctx, "excel:students_female", names)
+		}
+
+	}(name, isMale)
 }
 
 func colNameToNumber(col string) int {
