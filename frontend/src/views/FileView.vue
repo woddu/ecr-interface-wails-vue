@@ -3,7 +3,6 @@ import { EventsOn } from '../../wailsjs/runtime/runtime';
 import { onMounted } from 'vue';
 import { useFileViewStore } from '../store/fileViewStore';
 import { ref } from 'vue';
-import { useStudentsStore } from '../store/studentsStore';
 import { useHighestScoresStore } from '../store/highestScoresStore';
 
 const props = defineProps<{
@@ -14,6 +13,8 @@ const emit = defineEmits<{
   (e: 'loading', value: boolean): void
 }>()
 
+const isLoading = ref<boolean>(false);
+
 const toast = useToast();
 
 const fileStore = useFileViewStore();
@@ -21,6 +22,8 @@ const fileStore = useFileViewStore();
 const highestScoresStore = useHighestScoresStore();
 
 const selectedTrack = ref<string>(fileStore.track);
+
+const isFirstSem = ref<boolean>(true);
 
 const chooseFile = async () => {
   emit('loading', true);
@@ -36,6 +39,14 @@ async function handleSelect(newTrack: string) {
     await ChangeTrack(newTrack, fileStore.tracks.indexOf(newTrack));
     fileStore.setTrack(newTrack);
   }
+}
+
+async function changeSem() {
+  emit('loading', true);
+  isLoading.value = true;
+  const { ChangeSem } = await import('../../wailsjs/go/main/App');
+  await ChangeSem(isFirstSem.value);
+  
 }
 
 onMounted(async () => {
@@ -70,6 +81,7 @@ onMounted(async () => {
     }).finally(() => {
       fileStore.setDoneReading(true);
       emit('loading', false);
+      isLoading.value = false;
     });
   })
 
@@ -89,14 +101,19 @@ onMounted(async () => {
       <h1 class="mt-14 mx-auto font-bold text-6xl text-(--ui-primary)">
         {{ fileStore.fileName }}
       </h1>
-      <div class="mx-auto mt-14">
-        <USelect
-          v-model="selectedTrack"
-          :items="fileStore.tracks"
-          class="w-auto min-w-70"
-          @update:modelValue="handleSelect"
-        />
-      </div>
+      <USelect
+        v-model="selectedTrack"
+        :items="fileStore.tracks"
+        class="w-auto min-w-70 mx-auto mt-12"
+        @update:modelValue="handleSelect"
+      />
+      <UCheckbox
+        v-model="isFirstSem"
+        class="w-auto mx-auto mt-12"
+        label="First Semester"
+        @change="changeSem"
+        :disabled="isLoading"
+      />
     </header>
     
     <UButton
@@ -104,7 +121,9 @@ onMounted(async () => {
       icon="i-lucide-file"
       target="_blank"
       size="xl"
-      @click="chooseFile" />
+      @click="chooseFile" 
+      :disabled="isLoading && fileStore.doneReading"
+    />
 
   </div>
 </template>
