@@ -6,6 +6,10 @@ export function AddStudent(arg1, arg2) {
   return window['go']['main']['App']['AddStudent'](arg1, arg2);
 }
 
+export function ChangeSem(arg1) {
+  return window['go']['main']['App']['ChangeSem'](arg1);
+}
+
 export function ChangeTrack(arg1, arg2) {
   return window['go']['main']['App']['ChangeTrack'](arg1, arg2);
 }

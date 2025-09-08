@@ -4,6 +4,8 @@ import {main} from '../models';
 
 export function AddStudent(arg1:string,arg2:boolean):Promise<void>;
 
+export function ChangeSem(arg1:boolean):Promise<void>;
+
 export function ChangeTrack(arg1:string,arg2:number):Promise<void>;
 
 export function EditExamHighestScore(arg1:number):Promise<void>;

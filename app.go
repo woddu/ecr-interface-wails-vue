@@ -134,8 +134,11 @@ func (a *App) OpenFileDialog() error {
 		return nil
 	}
 
-	go func(path string) {
-		f, err := excelize.OpenFile(path)
+	a.filePath = filePath
+	a.fileName = strings.TrimSuffix(filepath.Base(filePath), filepath.Ext(filePath))
+
+	go func() {
+		f, err := excelize.OpenFile(a.filePath)
 		if err != nil {
 			runtime.EventsEmit(a.ctx, "excel:error", fmt.Sprintf("(OFD)Failed to open: %v", err))
 			return
@@ -152,8 +155,6 @@ func (a *App) OpenFileDialog() error {
 		}
 
 		runtime.EventsEmit(a.ctx, "excel:is_ecr", true)
-		a.filePath = path
-		a.fileName = strings.TrimSuffix(filepath.Base(path), filepath.Ext(path))
 
 		rows, err := f.GetRows(sheetsList[0]) // "INPUT DATA"
 		if err != nil {
@@ -235,9 +236,122 @@ func (a *App) OpenFileDialog() error {
 		runtime.EventsEmit(a.ctx, "excel:students_female", female)
 
 		runtime.EventsEmit(a.ctx, "excel:done_reading")
-	}(filePath)
+	}()
 
 	return nil
+}
+
+func (a *App) ChangeSem(firstSem bool) {
+	a.firstSem = firstSem
+	fmt.Println("Changed semester to", firstSem)
+	go func() {
+		f, err := excelize.OpenFile(a.filePath)
+		if err != nil {
+			runtime.EventsEmit(a.ctx, "excel:error", fmt.Sprintf("(OFD)Failed to open: %v", err))
+			return
+		}
+		defer f.Close()
+
+		allSheets := f.GetSheetList()
+
+		for _, required := range sheetsList {
+			if !slices.Contains(allSheets, required) {
+				runtime.EventsEmit(a.ctx, "excel:is_ecr", false)
+				return
+			}
+		}
+
+		runtime.EventsEmit(a.ctx, "excel:is_ecr", true)
+
+		rows, err := f.GetRows(sheetsList[0]) // "INPUT DATA"
+		if err != nil {
+			return
+		}
+		if len(rows) < 7 {
+			return
+		}
+		row := rows[7] // 8 row (index 7)
+
+		if len(row) >= 3 {
+			track := row[colNameToNumber("AE")]
+			a.track = track
+			a.weightedScores = weightedScores[indexOf(tracks[:], track)]
+		}
+
+		var index int
+
+		if a.firstSem {
+			index = 1
+		} else {
+			index = 2
+		}
+
+		rows, err = f.GetRows(sheetsList[index]) // "1ST"
+		if err != nil {
+			return
+		}
+
+		rowIndex := 10
+		if rowIndex < len(rows) {
+			row := rows[rowIndex]
+			// Columns F (index 5) to O (index 14)
+			// Columns S (index 18) to AB (index 27)
+			// Column AF (index 31)
+			// Make sure the row has enough columns
+			if len(row) > colNameToNumber("AF") {
+				var score float32
+
+				values := row[colNameToNumber("F") : colNameToNumber("O")+1] // slice is end-exclusive
+				for i, v := range values {
+					fmt.Sscanf(v, "%f", &score)
+					if v == "" {
+						score = 0
+					}
+					a.wwHighestScores[i] = score
+				}
+
+				values = row[colNameToNumber("S") : colNameToNumber("AB")+1]
+				for i, v := range values {
+					fmt.Sscanf(v, "%f", &score)
+					if v == "" {
+						score = 0
+					}
+					a.ptHighestScores[i] = score
+				}
+
+				fmt.Sscanf(row[colNameToNumber("AF")], "%f", &score)
+				a.examHighestScore = score
+			}
+		}
+
+		sheet := sheetsList[0] // e.g. "INPUT DATA"
+		var male []string
+		var female []string
+
+		for row := 13; row <= 42; row++ {
+			cell, err := f.GetCellValue(sheet, fmt.Sprintf("B%d", row))
+			if err != nil {
+				continue // skip errors silently
+			}
+			if cell != "" {
+				male = append(male, cell)
+			}
+		}
+		runtime.EventsEmit(a.ctx, "excel:students_male", male)
+
+		for row := 64; row <= 93; row++ {
+			cell, err := f.GetCellValue(sheet, fmt.Sprintf("B%d", row))
+			if err != nil {
+				continue // skip errors silently
+			}
+			if cell != "" {
+				female = append(female, cell)
+			}
+		}
+		runtime.EventsEmit(a.ctx, "excel:students_female", female)
+		fmt.Println("Done reading after changing sem")
+		runtime.EventsEmit(a.ctx, "excel:done_reading")
+	}()
 }
 
 type ScoresResult struct {
